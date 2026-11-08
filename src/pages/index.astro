@@ -1,0 +1,198 @@
+---
+import { getCollection, render } from 'astro:content';
+import { loadSite } from '../lib/site';
+import Mark from '../components/Mark.astro';
+import '../styles/global.css';
+
+const { articles, graph, singles } = await loadSite();
+const rendered = await Promise.all(articles.map(async (a) => ({ ...a, Content: (await render(a.entry)).Content })));
+
+const profileEntry = (await getCollection('profile'))[0];
+const profile = profileEntry?.data ?? { links: [] as { label: string; url: string }[] };
+const Profile = profileEntry ? (await render(profileEntry)).Content : null;
+
+// 1記事にしか出ないキーワードは点線
+const dotted = singles.map((k) => `a.kw[data-kw=${JSON.stringify(k)}]`).join(',');
+const kwCss = dotted ? `${dotted}{text-decoration-style:dotted}` : '';
+const graphJson = JSON.stringify(graph).replace(/</g, '\\u003c');
+
+const base = import.meta.env.BASE_URL;
+const year = new Date().getFullYear();
+const X = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>';
+---
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>貝</title>
+  <meta name="description" content="日記と、自作の音。" />
+  <script is:inline>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,700;0,800;1,800&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" />
+  <style is:inline set:html={kwCss}></style>
+</head>
+<body>
+  <header class="site-head px">
+    <a href={base} class="logo" aria-label="貝 — home">貝</a>
+    <nav aria-label="Main" class="navrow">
+      <button type="button" class="navb" data-nav="article" aria-pressed="true">Article</button>
+      <button type="button" class="navb" data-nav="graph" aria-pressed="false" aria-haspopup="dialog">Graph</button>
+      <button type="button" class="navb" data-nav="profile" aria-pressed="false" aria-haspopup="dialog">Profile</button>
+    </nav>
+  </header>
+
+  <div class="bar px">
+    <button type="button" class="bar-btn" id="now" aria-label="Nothing playing">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h3l4-3.5v11l-4-3.5h-3z" fill="currentColor"/><path d="M11.5 5.5c1.3 1.5 1.3 3.5 0 5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+      <span id="now-text">Not playing</span>
+    </button>
+    <div class="bar-right">
+      <button type="button" class="bar-btn" id="theme" aria-label="Switch theme">
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span id="theme-text">Light</span>
+      </button>
+      <span class="clock">
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+        <time id="clock"></time>
+      </span>
+    </div>
+  </div>
+
+  <main class="px">
+    <div class="list-head">
+      <span class="label">Articles [{articles.length}] · <span id="open-count">{articles.length}</span> open</span>
+      <button type="button" class="allbtn" id="toggle-all" aria-expanded="true">
+        <span class="sym" aria-hidden="true">−</span><span class="txt">Close all</span>
+      </button>
+    </div>
+
+    {rendered.map((a) => (
+      <section id={a.anchor} class="win" aria-label={a.date}>
+        <div class="win-bar">
+          <span>{a.date} {a.dow}</span>
+          <span class="win-kws jp">{a.keywords.join(' · ')}</span>
+          {a.sounds.length > 0 && <span>♪{a.sounds.length}</span>}
+          <button type="button" class="win-tg" aria-expanded="true" aria-controls={`${a.anchor}-body`} aria-label={`Close: ${a.date}`}>−</button>
+        </div>
+        <div class="win-body" id={`${a.anchor}-body`}>
+          <article class="wbody jp">
+            <h2 class="dh">{a.date} <span>{a.dow}</span></h2>
+            <a.Content />
+          </article>
+          {a.linked.length > 0 && (
+            <div class="wfoot">
+              <span class="label">Linked pages [{a.linked.length}]</span>
+              <div class="lcards">
+                {a.linked.map((l) => (
+                  <a href={`#${l.anchor}`} class="lcard">
+                    <b>{l.date}{l.hasSound ? ' ♪' : ''}</b>
+                    <span class="jp">{l.shared.join(' · ')}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    ))}
+  </main>
+
+  <footer class="site-foot px">
+    <div class="foot">
+      <div class="foot-left">
+        <nav aria-label="Links" class="ulinks">
+          {profile.links.map((l) => <a href={l.url} rel="me noopener">{l.label}</a>)}
+        </nav>
+        <span class="copy">© {year} 貝</span>
+      </div>
+      <Mark class="fmark" width={240} />
+    </div>
+  </footer>
+
+  <!-- GRAPH -->
+  <div class="mwrap" id="graph" hidden>
+    <button type="button" class="scrim" data-close aria-label="Close graph" tabindex="-1"></button>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Keyword graph">
+      <div class="modal-bar">
+        <span class="grow">graph — {graph.words.length} words · {graph.pages.length} pages</span>
+        <span>Words that share a page are linked</span>
+        <button type="button" class="xbtn" data-close aria-label="Close graph" set:html={X} />
+      </div>
+      <div class="g-cols">
+        <div class="g-left">
+          <div class="g-scroll">
+            <div class="g-canvas" id="g-canvas">
+              <svg viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+                <path class="g-faint" id="g-faint" vector-effect="non-scaling-stroke" />
+                <path class="g-on" id="g-on" vector-effect="non-scaling-stroke" />
+              </svg>
+            </div>
+          </div>
+          <div class="g-tools">
+            <div class="g-search">
+              <label for="kw-filter" class="label">Search</label>
+              <input id="kw-filter" type="search" placeholder="Type a word" autocomplete="off" />
+              <span class="legend">
+                <span><i aria-hidden="true"></i>size = pages</span>
+                <span><i class="d" aria-hidden="true"></i>on one page only</span>
+              </span>
+            </div>
+            <div class="chips" id="g-chips"></div>
+          </div>
+        </div>
+        <aside class="kwside" aria-label="Keyword page">
+          <div class="kw-head">
+            <h2 id="g-sel"></h2>
+            <span class="label"><span id="g-sel-count"></span> pages</span>
+          </div>
+          <div class="pcards" id="g-pages"></div>
+          <div class="related">
+            <span class="label">Related words [<span id="g-rel-count"></span>]</span>
+            <div class="chips" id="g-related"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="mwrap" id="profile" hidden>
+    <button type="button" class="scrim" data-close aria-label="Close profile" tabindex="-1"></button>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Profile">
+      <div class="modal-bar">
+        <span class="grow">profile.md</span>
+        <button type="button" class="xbtn" data-close aria-label="Close profile" set:html={X} />
+      </div>
+      <div class="prof">
+        <div class="prof-top">
+          <span class="prof-logo">貝</span>
+          <Mark width={150} />
+        </div>
+        <div class="prof-body jp">{Profile && <Profile />}</div>
+        <dl>
+          {profile.based_in && <><dt>Based in</dt><dd class="jp">{profile.based_in}</dd></>}
+          {profile.makes && <><dt>Makes</dt><dd class="jp">{profile.makes}</dd></>}
+          {profile.contact && <><dt>Contact</dt><dd class="jp">{/@/.test(profile.contact) ? <a href={`mailto:${profile.contact}`}>{profile.contact}</a> : profile.contact}</dd></>}
+        </dl>
+        <nav aria-label="Profile links" class="ulinks">
+          {profile.links.map((l) => <a href={l.url} rel="me noopener">{l.label}</a>)}
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="graph-data" set:html={graphJson}></script>
+  <script>
+    import '../scripts/app';
+  </script>
+</body>
+</html>

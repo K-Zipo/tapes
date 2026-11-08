@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.astro/
+.cache/
+.env
+.DS_Store
+
+# 音源の元ファイルは git に入れない（npm run sounds で外部ストレージへ）
+site/sounds/
+
+# ビルド時に site/ からコピーされるもの
+public/attachments/
+public/sounds-local/
+
+# Obsidian の個人設定
+site/.obsidian/workspace*.json

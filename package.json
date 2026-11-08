@@ -1,0 +1,17 @@
+{
+  "name": "kai-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "sounds": "node --env-file-if-exists=.env scripts/sounds.mjs",
+    "sounds:local": "node --env-file-if-exists=.env scripts/sounds.mjs --local"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.6",
+    "astro": "^7.4.7",
+    "image-size": "^2.1.0"
+  }
+}
