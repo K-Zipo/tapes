@@ -108,7 +108,17 @@ function renderSound(name, alias, base) {
   return `<div class="cw cw--sound" role="group" aria-label="${esc(name)}" data-src="${esc(url)}" data-title="${esc(title)}">${cwBar(ICON_SOUND, name, dur)}<div class="cw-player"><button type="button" class="pbtn" aria-label="Play: ${esc(title)}">${SPEAKER_OFF}${SPEAKER_ON}</button><div class="cw-main"><div class="cw-meta"><span class="cw-title">${esc(title)}</span><span><span class="cw-t">0:00</span> / ${dur}</span></div><div class="wave" aria-hidden="true">${bars}</div></div></div>${cap(alias)}</div>`;
 }
 
-function renderImage(name, alias, base) {
+// ![[x.jpg|説明|closed]] … | で区切った中に closed があれば最初は閉じておく。
+// Obsidian の大きさ指定（|300 や |300x200）はサイトでは使わないので説明文から外す。
+function imageOpts(alias) {
+  const parts = alias ? alias.split('|').map((s) => s.trim()) : [];
+  const closed = parts.some((s) => s.toLowerCase() === 'closed');
+  const caption = parts.filter((s) => s && s.toLowerCase() !== 'closed' && !/^\d+(x\d+)?$/.test(s)).join(' | ');
+  return { closed, caption };
+}
+
+function renderImage(name, rawAlias, base) {
+  const { closed, caption: alias } = imageOpts(rawAlias);
   let size = '';
   let w = '';
   let h = '';
@@ -121,7 +131,9 @@ function renderImage(name, alias, base) {
     return `<div class="cw" role="group" aria-label="${esc(name)}">${cwBar(ICON_IMAGE, name, '')}<p class="cw-missing">site/attachments/ に見つかりません。</p>${cap(alias)}</div>`;
   }
   const src = base + 'attachments/' + encodeURIComponent(name);
-  return `<div class="cw" role="group" aria-label="${esc(name)}">${cwBar(ICON_IMAGE, name, size)}<div class="cw-img"><img src="${esc(src)}" width="${w}" height="${h}" loading="lazy" decoding="async" alt="${esc(alias || name)}"></div>${cap(alias)}</div>`;
+  // 画像は開け閉めできる（<details> なので JS なしで動き、キーボードでも開閉できる）
+  const bar = `<summary class="cw-bar"><span class="cw-name">${ICON_IMAGE}${esc(name)}</span><span>${esc(size)}<span class="cw-tg" aria-hidden="true"></span></span></summary>`;
+  return `<details class="cw cw--img"${closed ? '' : ' open'}>${bar}<div class="cw-img"><img src="${esc(src)}" width="${w}" height="${h}" loading="lazy" decoding="async" alt="${esc(alias || name)}"></div>${cap(alias)}</details>`;
 }
 
 export function renderEmbed(inner, base = '/') {
@@ -151,18 +163,41 @@ function splitText(value) {
   return nodes;
 }
 
-/** 段落が埋め込みだけでできていれば、その中身の一覧を返す */
-function embedsOf(paragraph) {
-  if (!paragraph.children.every((c) => c.type === 'text' || c.type === 'break')) return null;
-  const text = paragraph.children.map((c) => (c.type === 'text' ? c.value : '\n')).join('');
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+/**
+ * 段落の中の ![[...]] を子ウィンドウにする。Obsidian と同じく、文の途中やリストの行の中に書いてもよい。
+ * 段落を「埋め込みの前の文 → 子ウィンドウ → 後ろの文」に分けて返す。埋め込みがなければ null。
+ */
+function splitEmbeds(paragraph, base) {
   const out = [];
-  for (const l of lines) {
-    const m = /^!\[\[([^\]\n]+)\]\]$/.exec(l);
-    if (!m) return null;
-    out.push(m[1]);
+  let buf = [];
+  let found = false;
+  const flush = () => {
+    // 子ウィンドウとの境目の改行・空白を落とし、何も残らなければ段落を作らない
+    const isBlank = (c) => c.type === 'break' || (c.type === 'text' && !c.value.trim());
+    while (buf.length && isBlank(buf[0])) buf.shift();
+    while (buf.length && isBlank(buf[buf.length - 1])) buf.pop();
+    if (buf[0]?.type === 'text') buf[0].value = buf[0].value.replace(/^\s+/, '');
+    const end = buf[buf.length - 1];
+    if (end?.type === 'text') end.value = end.value.replace(/\s+$/, '');
+    if (buf.length) out.push({ type: 'paragraph', children: buf });
+    buf = [];
+  };
+  for (const c of paragraph.children) {
+    if (c.type !== 'text') { buf.push(c); continue; }
+    let last = 0;
+    for (const m of c.value.matchAll(WIKI)) {
+      if (!m[1]) continue; // [[キーワード]] はあとで処理する
+      found = true;
+      if (m.index > last) buf.push({ type: 'text', value: c.value.slice(last, m.index) });
+      flush();
+      out.push({ type: 'html', value: renderEmbed(m[2], base) });
+      last = m.index + m[0].length;
+    }
+    if (last < c.value.length) buf.push({ type: 'text', value: c.value.slice(last) });
   }
-  return out.length ? out : null;
+  if (!found) return null;
+  flush();
+  return out;
 }
 
 export function remarkObsidian({ base = '/' } = {}) {
@@ -172,9 +207,12 @@ export function remarkObsidian({ base = '/' } = {}) {
     const out = [];
     for (const c of node.children) {
       if (c.type === 'paragraph') {
-        const embeds = embedsOf(c);
-        if (embeds) {
-          for (const e of embeds) out.push({ type: 'html', value: renderEmbed(e, b) });
+        const parts = splitEmbeds(c, b);
+        if (parts) {
+          for (const p of parts) {
+            if (p.type === 'paragraph') walk(p);
+            out.push(p);
+          }
           continue;
         }
       }

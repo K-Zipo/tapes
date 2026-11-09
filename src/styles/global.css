@@ -138,6 +138,14 @@ a.kw { text-decoration: underline; text-decoration-thickness: 1px; text-underlin
 .wave i { flex: 1 1 0; background: var(--muted); }
 .wave i.on { background: var(--fg); }
 .cw-cap { margin: 0; padding: 0 14px 10px; font-size: 14px; line-height: 1.8; color: var(--muted); }
+/* 画像の子ウィンドウは開け閉めできる。閉じているときはバーだけ */
+.cw--img > summary { cursor: pointer; list-style: none; }
+.cw--img > summary::-webkit-details-marker { display: none; }
+.cw--img > summary > span:last-child { display: flex; align-items: center; gap: 10px; }
+.cw-tg::before { content: '−'; display: inline-block; width: 1em; text-align: center; font-size: 15px; }
+.cw--img:not([open]) .cw-tg::before { content: '+'; }
+.cw--img:not([open]) > summary { border-bottom: none; }
+.cw--img > summary:hover { opacity: 0.65; }
 .cw-img { padding: 10px; }
 .cw-img img { display: block; max-width: 100%; height: auto; }
 .cw-missing { margin: 0; padding: 10px 14px; font-size: 13px; color: var(--muted); }
