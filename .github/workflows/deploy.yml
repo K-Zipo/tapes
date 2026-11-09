@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # サイトのバージョン履歴（git log）を作るのに全履歴が要る
       - uses: actions/setup-node@v4
         with:
           node-version: 24

@@ -253,6 +253,26 @@ a.kw { text-decoration: underline; text-decoration-thickness: 1px; text-underlin
 .prof dt { font-weight: 800; text-transform: uppercase; }
 .prof dd { margin: 0; }
 
+/* VERSION（ガワの履歴） */
+#ver { text-transform: none; }
+.ver-hash { font-weight: 400; }
+#changelog .modal { max-width: 720px; }
+.vlog { margin: 0; padding: 0; list-style: none; }
+.vrow {
+  display: grid; grid-template-columns: 64px 92px minmax(0, 1fr); align-items: baseline; gap: 4px 14px;
+  padding: 14px 18px; border-bottom: 2px solid var(--fg); font-size: 14px;
+}
+.vrow:last-child { border-bottom: none; }
+.vn { font-size: 22px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; }
+a.vn { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+.vdate { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.vtext { line-height: 1.8; overflow-wrap: anywhere; }
+.vtext b { font-size: 16px; }
+.vtext p { margin: 4px 0 0; white-space: pre-line; color: var(--muted); }
+.vrow.is-current { background: var(--fg); color: var(--bg); }
+.vrow.is-current .vn { font-style: italic; }
+.vrow.is-current .vtext p { color: inherit; opacity: 0.75; }
+
 /* ---------- FX ---------- */
 /* 画面を塞がない子ウィンドウ。右下に出て、タイトルバーで動かせる */
 .fxwin {
@@ -300,7 +320,9 @@ a.kw { text-decoration: underline; text-decoration-thickness: 1px; text-underlin
 @media (max-width: 640px) {
   :root { --px: 16px; --shadow: 4px; }
   .bar { gap: 0 14px; }
-  .clock { display: none; }
+  .clock, .ver-hash { display: none; }
+  .vrow { grid-template-columns: auto minmax(0, 1fr); padding: 12px 14px; }
+  .vrow .vtext { grid-column: 1 / -1; }
   main { padding-top: 20px; gap: 20px; }
   .wbody { padding: 14px 14px 18px; line-height: 1.9; }
   .wfoot { padding: 10px 14px 14px; }

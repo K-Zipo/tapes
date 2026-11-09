@@ -64,6 +64,19 @@ npm run sounds
 `main` に push すると GitHub Actions がビルドして Pages にデプロイする（`.github/workflows/deploy.yml`）。
 リポジトリの Settings → Pages → Source を「GitHub Actions」にしておく。
 
+## サイトのバージョン
+
+メニューバーの `v1` などはサイトのガワ（記事以外）のバージョンで、押すと履歴が出る。
+数えるのは git の注釈付きタグ `v1, v2, …` だけ。日記の更新や細かい直しでは増えない。
+ガワを大きく変えたら、コミットしたあとに
+
+```bash
+npm run release -- "見出し" "説明（省略可）"
+git push --follow-tags
+```
+
+見出しと説明がそのまま履歴に出る。隣の英数字（`fa658b9` など）は今のビルドのコミット。
+
 ## Obsidian の見た目
 
 `obsidian/snippets/kai-site.css` をサイトと同じ見え方にするスニペットとして用意してある。

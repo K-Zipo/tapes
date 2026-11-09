@@ -9,6 +9,7 @@
     "prebuild": "node --env-file-if-exists=.env scripts/notes.mjs --if-exists",
     "build": "astro build",
     "preview": "astro preview",
+    "release": "node scripts/release.mjs",
     "sounds": "npm run notes && node --env-file-if-exists=.env scripts/sounds.mjs",
     "sounds:local": "npm run notes && node --env-file-if-exists=.env scripts/sounds.mjs --local"
   },

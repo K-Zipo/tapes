@@ -313,7 +313,7 @@ const setNav = (which: string) => navBtns.forEach((b) => b.setAttribute('aria-pr
 let openModal: HTMLElement | null = null;
 let returnFocus: HTMLElement | null = null;
 
-function show(id: 'graph' | 'profile', origin = 'top right') {
+function show(id: 'graph' | 'profile' | 'changelog', origin = 'top right') {
   if (openModal && openModal.id !== id) openModal.hidden = true;
   else returnFocus = document.activeElement as HTMLElement;
   const m = document.getElementById(id)!;
@@ -344,6 +344,7 @@ for (const b of navBtns) {
   });
 }
 $$('[data-close]').forEach((b) => b.addEventListener('click', hide));
+$('#ver').addEventListener('click', () => show('changelog', 'top right'));
 document.addEventListener('keydown', (e) => {
   if (!openModal) return;
   if (e.key === 'Escape') hide();
