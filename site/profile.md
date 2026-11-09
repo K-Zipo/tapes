@@ -1,5 +1,4 @@
 ---
-based_in: Tokyo
 links:
   - label: X
     url: https://x.com/kai_echo_waves
@@ -10,7 +9,8 @@ links:
 ---
 ![[kai_prof.jpeg]]
 貝（Kai Jippo）
-2000年生まれ。電子楽器開発者、即興演奏家。
+2000年生まれ。東京都在住。
+電子楽器開発者、即興演奏家。
 
 ## Live
 - mod presents Alpha-Beta vol.33 (2026/9/30)
