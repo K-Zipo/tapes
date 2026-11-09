@@ -3,11 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "notes": "node --env-file-if-exists=.env scripts/notes.mjs",
+    "predev": "node --env-file-if-exists=.env scripts/notes.mjs --if-exists",
     "dev": "astro dev",
+    "prebuild": "node --env-file-if-exists=.env scripts/notes.mjs --if-exists",
     "build": "astro build",
     "preview": "astro preview",
-    "sounds": "node --env-file-if-exists=.env scripts/sounds.mjs",
-    "sounds:local": "node --env-file-if-exists=.env scripts/sounds.mjs --local"
+    "sounds": "npm run notes && node --env-file-if-exists=.env scripts/sounds.mjs",
+    "sounds:local": "npm run notes && node --env-file-if-exists=.env scripts/sounds.mjs --local"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.6",
