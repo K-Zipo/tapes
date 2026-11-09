@@ -14,10 +14,11 @@ const diary = defineCollection({
 const profile = defineCollection({
   loader: glob({ pattern: 'profile.md', base: './site' }),
   schema: z.object({
-    based_in: z.string().optional(),
-    makes: z.string().optional(),
-    contact: z.string().optional(),
-    links: z.array(z.object({ label: z.string(), url: z.string() })).default([]),
+    // 空欄（`makes:` だけ）も「書いていない」として通す
+    based_in: z.string().nullish(),
+    makes: z.string().nullish(),
+    contact: z.string().nullish(),
+    links: z.array(z.object({ label: z.string(), url: z.string() })).nullish().transform((v) => v ?? []),
   }),
 });
 
