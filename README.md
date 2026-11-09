@@ -44,6 +44,11 @@ npm run dev            # http://localhost:4321
 2. バケットの Settings → Public access で r2.dev の公開URLを有効にする（独自ドメインでもよい）。
 3. R2 → Manage R2 API Tokens で「Object Read & Write」のトークンを作る。
 4. `.env.example` を `.env` にコピーし、公開URL・アカウントID・キーを書く。
+5. バケットの Settings → CORS Policy に、サイトから音を読む許可を入れる（FX のディレイを音源にかけるのに必要。これがないと音が鳴らない）:
+
+   ```json
+   [{ "AllowedOrigins": ["https://<ユーザー名>.github.io", "http://localhost:4321"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"] }]
+   ```
 
 そのあとは、音源を足したら
 

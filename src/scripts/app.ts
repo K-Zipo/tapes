@@ -84,6 +84,8 @@ if (location.hash.startsWith('#w-')) {
 /* ---------- 再生（全体で1曲だけ） ---------- */
 const audio = new Audio();
 audio.preload = 'none';
+// R2 など別ドメインの音を Web Audio（FX）に通すため。バケット側に CORS の許可が要る
+audio.crossOrigin = 'anonymous';
 let current: HTMLElement | null = null;
 const nowBtn = $('#now');
 const nowText = $('#now-text');
@@ -118,6 +120,7 @@ function stop() {
   showNow();
 }
 function play(cw: HTMLElement, at?: number) {
+  fxStart();
   if (current !== cw) {
     stop();
     current = cw;
@@ -154,8 +157,158 @@ audio.addEventListener('timeupdate', () => {
 });
 nowBtn.addEventListener('click', stop);
 
+/* ---------- FX（ディレイ） ----------
+ * audio → dry ─────────────────────────┐
+ *       → send → delay ⇄ (feedback → lowpass) │→ limiter → 出力
+ *                 delay → wet ───────────────┘
+ * OFF のときは send を 0 にするだけ（残響は自然に消えていく）。
+ * AudioContext はブラウザの決まりで、最初に再生ボタンを押したときに作る。
+ */
+type FxState = { on: boolean; time: number; fb: number; mix: number };
+const FX_DEFAULT: FxState = { on: false, time: 380, fb: 45, mix: 35 };
+let fx: FxState = { ...FX_DEFAULT };
+try { fx = { ...FX_DEFAULT, ...JSON.parse(localStorage.getItem('fx') || '{}') }; } catch {}
+
+let ctx: AudioContext | null = null;
+let nodes: { send: GainNode; delay: DelayNode; feedback: GainNode; dry: GainNode; wet: GainNode } | null = null;
+
+function fxStart() {
+  if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+  const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return;
+  ctx = new AC();
+  const src = ctx.createMediaElementSource(audio);
+  const dry = ctx.createGain();
+  const send = ctx.createGain();
+  const delay = ctx.createDelay(2);
+  const feedback = ctx.createGain();
+  const tone = ctx.createBiquadFilter();
+  tone.type = 'lowpass';
+  tone.frequency.value = 5200; // 繰り返すたびに少しずつこもる
+  const wet = ctx.createGain();
+  const limiter = ctx.createDynamicsCompressor(); // フィードバックを上げても耳を守る
+  limiter.threshold.value = -6;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.1;
+  src.connect(dry).connect(limiter);
+  src.connect(send).connect(delay);
+  delay.connect(feedback).connect(tone).connect(delay);
+  delay.connect(wet).connect(limiter);
+  limiter.connect(ctx.destination);
+  nodes = { send, delay, feedback, dry, wet };
+  fxApply(true);
+}
+
+function fxApply(instant = false) {
+  try { localStorage.setItem('fx', JSON.stringify(fx)); } catch {}
+  fxShow();
+  if (!ctx || !nodes) return;
+  const t = ctx.currentTime;
+  const set = (p: AudioParam, v: number, tc = 0.03) => (instant ? p.setValueAtTime(v, t) : p.setTargetAtTime(v, t, tc));
+  const m = fx.mix / 100;
+  set(nodes.send.gain, fx.on ? 1 : 0, 0.01);
+  set(nodes.dry.gain, fx.on ? Math.cos((m * Math.PI) / 2) : 1);
+  set(nodes.wet.gain, Math.sin((m * Math.PI) / 2));
+  set(nodes.feedback.gain, fx.fb / 100);
+  // 時間はゆっくり追従させる（動かすとテープのように音程が揺れる）
+  set(nodes.delay.delayTime, fx.time / 1000, 0.08);
+}
+
+const fxWin = $('#fx');
+const fxNav = $<HTMLButtonElement>('.navb[data-nav="fx"]');
+const fxOn = $<HTMLButtonElement>('#fx-on');
+const sliders = {
+  time: $<HTMLInputElement>('#fx-time'),
+  fb: $<HTMLInputElement>('#fx-fb'),
+  mix: $<HTMLInputElement>('#fx-mix'),
+};
+const readout = { time: (v: number) => `${v} ms`, fb: (v: number) => `${v}%`, mix: (v: number) => `${v}%` };
+
+// 残響の見え方: 0 秒から 2.4 秒までに、原音と繰り返しを縦線で並べる
+const taps = $('#fx-taps');
+const TAP_SPAN = 2400;
+function fxShow() {
+  fxOn.setAttribute('aria-pressed', String(fx.on));
+  fxOn.textContent = fx.on ? 'On' : 'Off';
+  fxWin.classList.toggle('is-on', fx.on);
+  for (const k of ['time', 'fb', 'mix'] as const) {
+    sliders[k].value = String(fx[k]);
+    sliders[k].style.setProperty('--v', `${((fx[k] - +sliders[k].min) / (+sliders[k].max - +sliders[k].min)) * 100}%`);
+    $(`#fx-${k}-v`).textContent = readout[k](fx[k]);
+  }
+  const bars: HTMLElement[] = [];
+  const add = (x: number, h: number, dry = false) => {
+    const i = document.createElement('i');
+    i.style.left = `${(x / TAP_SPAN) * 100}%`;
+    i.style.height = `${Math.max(4, h * 100)}%`;
+    if (dry) i.className = 'dry';
+    bars.push(i);
+  };
+  const m = fx.mix / 100;
+  add(0, fx.on ? Math.cos((m * Math.PI) / 2) : 1, true);
+  if (fx.on) {
+    let h = Math.sin((m * Math.PI) / 2);
+    for (let x = fx.time; x < TAP_SPAN && h > 0.03; x += fx.time) {
+      add(x, h);
+      h *= (fx.fb / 100) * 0.92;
+    }
+  }
+  taps.replaceChildren(...bars);
+}
+
+for (const k of ['time', 'fb', 'mix'] as const) {
+  sliders[k].addEventListener('input', () => {
+    fx[k] = +sliders[k].value;
+    fxApply();
+  });
+}
+fxOn.addEventListener('click', () => {
+  fx.on = !fx.on;
+  fxApply();
+});
+
+function fxOpen(open: boolean) {
+  fxWin.hidden = !open;
+  fxNav.setAttribute('aria-pressed', String(open));
+  document.body.classList.toggle('fx-open', open);
+  if (open) fxOn.focus({ preventScroll: true });
+}
+fxNav.addEventListener('click', () => fxOpen(fxWin.hidden));
+$('#fx-close').addEventListener('click', () => { fxOpen(false); fxNav.focus(); });
+fxWin.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { fxOpen(false); fxNav.focus(); }
+});
+
+// タイトルバーをつかんで動かす（スマホでは下に張り付くので動かさない）
+const grip = $('.fx-bar', fxWin);
+const narrow = matchMedia('(max-width: 640px)');
+grip.addEventListener('pointerdown', (e) => {
+  if (narrow.matches || (e.target as Element).closest('button')) return;
+  const r = fxWin.getBoundingClientRect();
+  const dx = e.clientX - r.left, dy = e.clientY - r.top;
+  grip.setPointerCapture(e.pointerId);
+  fxWin.classList.add('is-dragging');
+  const move = (ev: PointerEvent) => {
+    const x = Math.min(window.innerWidth - r.width, Math.max(0, ev.clientX - dx));
+    const y = Math.min(window.innerHeight - 40, Math.max(0, ev.clientY - dy));
+    fxWin.style.left = `${x}px`;
+    fxWin.style.top = `${y}px`;
+    fxWin.style.right = fxWin.style.bottom = 'auto';
+  };
+  const up = () => {
+    grip.removeEventListener('pointermove', move);
+    fxWin.classList.remove('is-dragging');
+  };
+  grip.addEventListener('pointermove', move);
+  grip.addEventListener('pointerup', up, { once: true });
+  grip.addEventListener('pointercancel', up, { once: true });
+});
+fxShow();
+
 /* ---------- ポップアップ ---------- */
-const navBtns = $$<HTMLButtonElement>('.navb');
+const navBtns = $$<HTMLButtonElement>('.navb:not([data-nav="fx"])'); // FX は開け閉めが別
 const setNav = (which: string) => navBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.nav === which)));
 let openModal: HTMLElement | null = null;
 let returnFocus: HTMLElement | null = null;

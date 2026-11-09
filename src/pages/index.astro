@@ -47,6 +47,7 @@ const X = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><p
       <button type="button" class="navb" data-nav="article" aria-pressed="true">Article</button>
       <button type="button" class="navb" data-nav="graph" aria-pressed="false" aria-haspopup="dialog">Graph</button>
       <button type="button" class="navb" data-nav="profile" aria-pressed="false" aria-haspopup="dialog">Profile</button>
+      <button type="button" class="navb" data-nav="fx" aria-pressed="false" aria-controls="fx">FX</button>
     </nav>
   </header>
 
@@ -117,6 +118,21 @@ const X = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><p
       <Mark class="fmark" width={240} />
     </div>
   </footer>
+
+  <!-- FX: 画面を塞がない小さなウィンドウ。再生中の音にかかる -->
+  <section class="fxwin" id="fx" aria-label="Effects" hidden>
+    <div class="fx-bar">
+      <span class="grow fx-grip">fx — delay</span>
+      <button type="button" class="fx-on" id="fx-on" aria-pressed="false">Off</button>
+      <button type="button" class="xbtn" id="fx-close" aria-label="Close effects" set:html={X} />
+    </div>
+    <div class="fx-body">
+      <div class="fx-taps" id="fx-taps" aria-hidden="true"></div>
+      <label class="fx-row"><span class="label">Time</span><input type="range" id="fx-time" min="40" max="1200" step="10" /><output id="fx-time-v" for="fx-time"></output></label>
+      <label class="fx-row"><span class="label">Feedback</span><input type="range" id="fx-fb" min="0" max="95" step="1" /><output id="fx-fb-v" for="fx-fb"></output></label>
+      <label class="fx-row"><span class="label">Mix</span><input type="range" id="fx-mix" min="0" max="100" step="1" /><output id="fx-mix-v" for="fx-mix"></output></label>
+    </div>
+  </section>
 
   <!-- GRAPH -->
   <div class="mwrap" id="graph" hidden>
