@@ -1,10 +1,10 @@
 ---
-// ロゴマーク（public/mark.svg をインラインで、currentColor で描く）
+// ロゴマーク（public/mark.svg をインラインで、currentColor で描く）。正方形
 import fs from 'node:fs';
-interface Props { class?: string; width: number; }
-const { class: cls = '', width } = Astro.props;
+interface Props { class?: string; size: number; }
+const { class: cls = '', size } = Astro.props;
 const raw = fs.readFileSync('public/mark.svg', 'utf8');
+const viewBox = raw.match(/viewBox="([^"]+)"/)?.[1] ?? '0 0 120 120';
 const inner = raw.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
-const height = Math.round((width * 120) / 200);
 ---
-<svg class={cls} width={width} height={height} viewBox="0 0 200 120" role="img" aria-label="貝 — ワニ口クリップと、ピッチが下がりながら減衰する波" set:html={inner} />
+<svg class={cls} width={size} height={size} viewBox={viewBox} role="img" aria-label="貝 — ワニ口クリップと、そこから伸びるケーブルが、ピッチを下げながら減衰する波になる" set:html={inner} />

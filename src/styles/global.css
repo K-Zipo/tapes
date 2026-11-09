@@ -166,7 +166,7 @@ a.kw { text-decoration: underline; text-decoration-thickness: 1px; text-underlin
 .ulinks { display: flex; flex-direction: column; align-items: flex-start; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
 .ulinks a { min-height: 32px; display: flex; align-items: center; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.28em; }
 .copy { font-size: 12px; font-weight: 700; }
-.fmark { flex: none; width: 240px; height: 144px; }
+.fmark { flex: none; width: 140px; height: 140px; }
 
 /* ---------- popups ---------- */
 .mwrap {
@@ -343,7 +343,7 @@ a.vn { text-decoration: underline; text-decoration-thickness: 2px; text-underlin
   .mwrap { padding: 0; align-items: stretch; }
   .modal { max-width: none !important; height: 100%; border-width: 0; box-shadow: none; }
   .kwside { border-left: none; border-top: 3px solid var(--fg); }
-  .fmark { width: 112px; height: 68px; }
+  .fmark { width: 76px; height: 76px; }
   .fxwin { left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; width: auto; max-width: none; border-width: 3px 0 0; box-shadow: none; transform-origin: bottom center; }
   .fx-bar { cursor: default; }
   .fx-body { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
