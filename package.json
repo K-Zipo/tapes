@@ -10,8 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "release": "node scripts/release.mjs",
-    "sounds": "npm run notes && node --env-file-if-exists=.env scripts/sounds.mjs",
-    "sounds:local": "npm run notes && node --env-file-if-exists=.env scripts/sounds.mjs --local"
+    "sounds": "npm run notes -- --if-exists && node --env-file-if-exists=.env scripts/sounds.mjs",
+    "sounds:local": "npm run notes -- --if-exists && node --env-file-if-exists=.env scripts/sounds.mjs --local"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.6",
