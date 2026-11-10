@@ -9,7 +9,9 @@ links:
 ---
 ![[kai_prof.jpeg]]
 貝（Kai Jippo）
+
 2000年生まれ。東京都在住。
+
 電子楽器開発者、即興演奏家。
 
 ## Live
