@@ -91,12 +91,17 @@ const SPEAKER_OFF =
 const SPEAKER_ON =
   '<svg class="i-on" width="34" height="34" viewBox="0 0 36 36" aria-hidden="true"><path d="M4 13h7l8-7v24l-8-7H4z" fill="currentColor"/><path d="M24 12c2.6 3.2 2.6 8.8 0 12M28.5 8c4.6 5.6 4.6 14.4 0 20" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>';
 
+const ICON_LOOP =
+  '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 9.5V7a3 3 0 0 1 3-3h7M10.5 1.5L13 4l-2.5 2.5M13 6.5V9a3 3 0 0 1-3 3H3M5.5 14.5L3 12l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"/></svg>';
+
 function cwBar(icon, name, right) {
   return `<div class="cw-bar"><span class="cw-name">${icon}${esc(name)}</span><span>${esc(right)}</span></div>`;
 }
 const cap = (alias) => (alias ? `<p class="cw-cap jp">${esc(alias)}</p>` : '');
 
-function renderSound(name, alias, base) {
+// ![[x.wav|説明|loop]] … 最初からループ再生にしておく。LOOP ボタンでいつでも切り替えられる
+function renderSound(name, rawAlias, base) {
+  const { on: loop, caption: alias } = embedOpts(rawAlias, 'loop');
   const s = loadSounds()[name];
   const title = s?.title || soundTitle(name);
   if (!s) {
@@ -105,20 +110,21 @@ function renderSound(name, alias, base) {
   const url = /^https?:\/\//.test(s.url) ? s.url : base + s.url.replace(/^\//, '');
   const dur = fmtTime(s.duration);
   const bars = (s.peaks || []).map((p) => `<i style="height:${Math.max(6, Math.round(p * 100))}%"></i>`).join('');
-  return `<div class="cw cw--sound" role="group" aria-label="${esc(name)}" data-src="${esc(url)}" data-title="${esc(title)}">${cwBar(ICON_SOUND, name, dur)}<div class="cw-player"><button type="button" class="pbtn" aria-label="Play: ${esc(title)}">${SPEAKER_OFF}${SPEAKER_ON}</button><div class="cw-main"><div class="cw-meta"><span class="cw-title">${esc(title)}</span><span><span class="cw-t">0:00</span> / ${dur}</span></div><div class="wave" aria-hidden="true">${bars}</div></div></div>${cap(alias)}</div>`;
+  return `<div class="cw cw--sound" role="group" aria-label="${esc(name)}" data-src="${esc(url)}" data-title="${esc(title)}"${loop ? ' data-loop="1"' : ''}>${cwBar(ICON_SOUND, name, dur)}<div class="cw-player"><button type="button" class="pbtn" aria-label="Play: ${esc(title)}">${SPEAKER_OFF}${SPEAKER_ON}</button><div class="cw-main"><div class="cw-meta"><span class="cw-title">${esc(title)}</span><span class="cw-right"><button type="button" class="lbtn" aria-pressed="${loop}" aria-label="Loop: ${esc(title)}">${ICON_LOOP}Loop</button><span><span class="cw-t">0:00</span> / ${dur}</span></span></div><div class="wave" aria-hidden="true">${bars}</div></div></div>${cap(alias)}</div>`;
 }
 
 // ![[x.jpg|説明|closed]] … | で区切った中に closed があれば最初は閉じておく。
 // Obsidian の大きさ指定（|300 や |300x200）はサイトでは使わないので説明文から外す。
-function imageOpts(alias) {
+// | で区切った中の指定（closed / loop）を取り出し、残りを説明文にする
+function embedOpts(alias, flag) {
   const parts = alias ? alias.split('|').map((s) => s.trim()) : [];
-  const closed = parts.some((s) => s.toLowerCase() === 'closed');
-  const caption = parts.filter((s) => s && s.toLowerCase() !== 'closed' && !/^\d+(x\d+)?$/.test(s)).join(' | ');
-  return { closed, caption };
+  const on = parts.some((s) => s.toLowerCase() === flag);
+  const caption = parts.filter((s) => s && s.toLowerCase() !== flag && !/^\d+(x\d+)?$/.test(s)).join(' | ');
+  return { on, caption };
 }
 
 function renderImage(name, rawAlias, base) {
-  const { closed, caption: alias } = imageOpts(rawAlias);
+  const { on: closed, caption: alias } = embedOpts(rawAlias, 'closed');
   let size = '';
   let w = '';
   let h = '';

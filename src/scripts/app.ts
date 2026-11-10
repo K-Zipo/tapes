@@ -102,7 +102,7 @@ function setPlaying(cw: HTMLElement, on: boolean) {
 }
 function showNow() {
   if (current && !audio.paused) {
-    nowText.textContent = `Now playing: ${current.dataset.title}  ■`;
+    nowText.textContent = `Now playing: ${current.dataset.title}${audio.loop ? ' (loop)' : ''}  ■`;
     nowBtn.setAttribute('aria-label', `Stop: ${current.dataset.title}`);
   } else {
     nowText.textContent = 'Not playing';
@@ -126,10 +126,18 @@ function play(cw: HTMLElement, at?: number) {
     current = cw;
     audio.src = cw.dataset.src!;
   }
+  audio.loop = cw.dataset.loop === '1';
   if (at != null && Number.isFinite(audio.duration)) audio.currentTime = at * audio.duration;
   audio.play().catch(() => stop());
 }
+// ループの切り替え（再生中の曲なら、その場で反映する）
+function setLoop(cw: HTMLElement, on: boolean) {
+  cw.dataset.loop = on ? '1' : '';
+  $('.lbtn', cw).setAttribute('aria-pressed', String(on));
+  if (current === cw) { audio.loop = on; showNow(); }
+}
 for (const cw of $$('.cw--sound')) {
+  $('.lbtn', cw).addEventListener('click', () => setLoop(cw, cw.dataset.loop !== '1'));
   $('.pbtn', cw).addEventListener('click', () => {
     if (current === cw && !audio.paused) audio.pause();
     else play(cw);

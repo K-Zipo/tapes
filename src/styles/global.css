@@ -134,6 +134,15 @@ a.kw { text-decoration: underline; text-decoration-thickness: 1px; text-underlin
 .cw-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .cw-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 700; }
 .cw-title { font-size: 16px; font-weight: 800; }
+.cw-meta { flex-wrap: wrap; row-gap: 4px; align-items: center; }
+.cw-right { display: flex; align-items: center; gap: 12px; margin-left: auto; white-space: nowrap; }
+/* LOOP: 押すと黒ベタ・イタリック */
+.lbtn {
+  display: flex; align-items: center; gap: 5px; min-height: 26px; padding: 0 8px;
+  border: 2px solid var(--fg); background: transparent; color: var(--fg); cursor: pointer;
+  font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 800; text-transform: uppercase;
+}
+.lbtn[aria-pressed='true'] { background: var(--fg); color: var(--bg); font-style: italic; }
 .wave { display: flex; align-items: flex-end; gap: 2px; height: 40px; cursor: pointer; }
 .wave i { flex: 1 1 0; background: var(--muted); }
 .wave i.on { background: var(--fg); }
