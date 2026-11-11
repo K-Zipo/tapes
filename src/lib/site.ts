@@ -13,6 +13,7 @@ export type Article = {
   keywords: string[];
   sounds: string[]; // 表示用タイトル
   excerpt: string;
+  peaks: number[]; // 最初の音源の波形（リンクカード用）
   linked: { anchor: string; date: string; hasSound: boolean; shared: string[] }[];
 };
 
@@ -30,6 +31,7 @@ export async function loadSite() {
     const id = entry.id;
     const [y, m, d] = id.split('-').map(Number);
     const body = entry.body ?? '';
+    const names: string[] = soundsOf(body);
     return {
       entry,
       id,
@@ -37,8 +39,9 @@ export async function loadSite() {
       date: id.replaceAll('-', '.'),
       dow: DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()],
       keywords: keywordsOf(body),
-      sounds: soundsOf(body).map((n: string) => sounds[n]?.title || soundTitle(n)),
+      sounds: names.map((n) => sounds[n]?.title || soundTitle(n)),
       excerpt: excerptOf(body),
+      peaks: names.map((n) => sounds[n]?.peaks).find((p) => p?.length) ?? [],
       linked: [],
     };
   });

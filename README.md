@@ -13,6 +13,7 @@ Obsidian で書いた Markdown を Astro で静的サイトにして、GitHub Pa
 - **プレイヤー** … 同時に鳴るのは1曲だけ。波形を押すとその位置から再生し、NOW PLAYING に今の曲が出る
 - **FX** … 再生中の音にディレイをかける、画面を塞がない小さなウィンドウ（Web Audio API）
 - **サイトのバージョン** … git のタグから作ったバージョンとその履歴を、サイトのメニューバーに出す
+- **記事ごとのリンクカード** … `/d/YYYY-MM-DD/` を SNS に貼ると、その日の日付・書き出し・音源の波形が入ったカードになる。開いた人はトップのその記事に移る
 - ライト／ダークの切り替え、時計、640px 以下でのスマホ表示、キーボード操作とスクリーンリーダーへの配慮
 
 デザインは白黒だけ、3px の罫線、6px ずらした影です。フォントは Archivo と Zen Kaku Gothic New を使っています。
@@ -53,6 +54,8 @@ src/
   lib/obsidian.mjs      Obsidian の書き方を変換する remark プラグイン、子ウィンドウの HTML
   lib/site.ts           キーワードの集計、Linked pages、GRAPH の配置（決まった結果になる力学モデル）
   lib/version.ts        git のタグからバージョンの履歴を作る
+  lib/card.ts           リンクカードの画像（SVG を sharp で PNG にする）
+  pages/d/[id]/         記事ごとのリンクカード用ページと画像
   scripts/app.ts        ブラウザ側の動き（開閉、再生、FX、ポップアップ、GRAPH）
   styles/global.css     スタイル
   data/sounds.json      音源の URL・長さ・波形（npm run sounds が書く）

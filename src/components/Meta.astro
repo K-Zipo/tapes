@@ -1,0 +1,17 @@
+---
+// リンクカード（OGP / X）。path は base 込みの絶対パス
+interface Props { title: string; description?: string; path: string; image: string; type?: 'website' | 'article'; alt?: string }
+const { title, description, path, image, type = 'website', alt = '貝のマーク' } = Astro.props;
+const abs = (p: string) => new URL(p, Astro.site ?? Astro.url).href;
+---
+<meta property="og:site_name" content="貝" />
+<meta property="og:type" content={type} />
+<meta property="og:title" content={title} />
+{description && <meta property="og:description" content={description} />}
+<meta property="og:url" content={abs(path)} />
+<meta property="og:image" content={abs(image)} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={alt} />
+<meta property="og:locale" content="ja_JP" />
+<meta name="twitter:card" content="summary_large_image" />

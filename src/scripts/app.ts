@@ -78,7 +78,13 @@ document.addEventListener('click', (e) => {
 });
 if (location.hash.startsWith('#w-')) {
   const w = document.getElementById(location.hash.slice(1));
-  if (w) setOpen(w, true);
+  if (w) {
+    setOpen(w, true);
+    // 記事ごとの URL（/d/…/）から来たとき。フォントの読み込みで位置がずれるので、読み込み後にもう一度合わせる
+    const go = () => w.scrollIntoView({ block: 'start', behavior: 'instant' });
+    go();
+    document.fonts?.ready.then(go);
+  }
 }
 
 /* ---------- 再生（全体で1曲だけ） ---------- */

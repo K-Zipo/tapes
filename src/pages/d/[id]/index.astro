@@ -1,0 +1,32 @@
+---
+// 記事ごとの URL（/d/2026-11-10/）。リンクカードを出すためだけのページで、
+// 開いた人はすぐトップのその記事（#w-2026-11-10）に移る。見た目はトップと同じ
+import { loadSite } from '../../../lib/site';
+import { excerptOf } from '../../../lib/obsidian.mjs';
+import Meta from '../../../components/Meta.astro';
+
+export async function getStaticPaths() {
+  const { articles } = await loadSite();
+  return articles.map((a) => ({ params: { id: a.id }, props: { a } }));
+}
+
+const { a } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const to = `${base}#${a.anchor}`;
+const title = `${a.date} ${a.dow}${a.sounds.length ? ' ♪' : ''} — 貝`;
+const description = excerptOf(a.entry.body ?? '', 100) || a.keywords.join(' · ');
+---
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta http-equiv="refresh" content={`0; url=${to}`} />
+  <Meta title={title} description={description} path={`${base}d/${a.id}/`} image={`${base}d/${a.id}/card.png`} type="article" alt={a.peaks.length ? `貝のマークと、${a.sounds[0]} の波形` : undefined} />
+  <script is:inline define:vars={{ to }}>location.replace(to);</script>
+</head>
+<body>
+  <p><a href={to}>{a.date} の日記へ</a></p>
+</body>
+</html>
