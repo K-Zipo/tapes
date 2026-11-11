@@ -103,6 +103,14 @@ main { padding-top: 32px; padding-bottom: 64px; display: flex; flex-direction: c
   flex: 0 0 44px; height: 34px; margin-left: auto; border: none; border-left: 3px solid var(--bg);
   background: transparent; font-size: 18px; cursor: pointer;
 }
+/* 記事の URL（/d/…/、リンクカード付き）を共有する。読み終わったところ（右下）に置く。スマホは共有シート、PC はコピー */
+.wbody > .win-share {
+  align-self: flex-end; margin-top: 4px; min-height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px;
+  border: 3px solid var(--fg); background: var(--bg); color: var(--fg); box-shadow: 4px 4px 0 var(--fg);
+  font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 800; line-height: 1; text-transform: uppercase; cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.wbody > .win-share:active { box-shadow: none; transform: translate(4px, 4px); }
 .wbody { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 16px; font-size: 16px; line-height: 1.95; }
 .wbody > * { margin: 0; }
 .wbody ul, .wbody ol { padding-left: 1.4em; }

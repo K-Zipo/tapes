@@ -87,6 +87,32 @@ if (location.hash.startsWith('#w-')) {
   }
 }
 
+/* ---------- 共有 ---------- */
+// 記事ごとの URL（/d/…/）はリンクカード付き。開いた人はトップのその記事に移る
+for (const b of $$<HTMLButtonElement>('.win-share')) {
+  const label = $('span', b);
+  let timer = 0;
+  const flash = (text: string) => {
+    label.textContent = text;
+    clearTimeout(timer);
+    timer = window.setTimeout(() => (label.textContent = 'Share'), 1600);
+  };
+  b.addEventListener('click', async () => {
+    const url = new URL(b.dataset.url!, location.origin).href;
+    // 共有シートはスマホだけ（PC の共有シートは使いにくいので、コピーにする）
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+      try { await navigator.share({ title: b.dataset.title, url }); } catch {}
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      flash('Copied');
+    } catch {
+      prompt('URL', url);
+    }
+  });
+}
+
 /* ---------- 再生（全体で1曲だけ） ---------- */
 const audio = new Audio();
 audio.preload = 'none';

@@ -98,6 +98,10 @@ const X = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><p
           <article class="wbody jp">
             <h2 class="dh">{a.date} <span>{a.dow}</span></h2>
             <a.Content />
+            <button type="button" class="win-share" data-url={`${base}d/${a.id}/`} data-title={`${a.date} ${a.dow} — 貝`} aria-label={`Share: ${a.date}`}>
+              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2M4.5 5.2L8 1.8l3.5 3.4M3 8.5V14h10V8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"/></svg>
+              <span>Share</span>
+            </button>
           </article>
           {a.linked.length > 0 && (
             <div class="wfoot">
