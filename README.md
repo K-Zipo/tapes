@@ -120,7 +120,7 @@ draft: false   # true にするとサイトに出ない
 | `npm run notes` | vault と音源フォルダから `site/` に取り込む |
 | `npm run sounds` | 取り込み → MP3 に変換 → アップロード → `sounds.json` 更新。変わったファイルだけ処理する（`-- --force` で全部） |
 | `npm run sounds:local` | アップロードせず `public/sounds-local/` に置く |
-| `npm run release -- "見出し" "説明"` | 次のバージョンの注釈付きタグを打つ |
+| `npm run release -- "見出し"` | 次のバージョンの注釈付きタグを打つ |
 
 ## 環境変数
 
@@ -157,11 +157,11 @@ R2 以外のストレージでも、`SOUNDS_BASE_URL` と `SOUNDS_UPLOAD_CMD` �
 
 ## バージョン
 
-メニューバーのバージョンは、注釈付きタグ `v1, v2, …` の数で決まります。タグのメッセージがそのまま履歴に出ます。
+メニューバーのバージョンは、注釈付きタグ `v1, v2, …` の数で決まります。タグの見出しがそのまま履歴に出ます（説明は付けません）。
 記事の更新では増えません。サイトのガワを大きく変えたときだけタグを打ちます。
 
 ```bash
-npm run release -- "FX を足した" "ディレイのウィンドウを付けた。"
+npm run release -- "FX を足した"
 git push --follow-tags
 ```
 

@@ -297,10 +297,8 @@ a.vn { text-decoration: underline; text-decoration-thickness: 2px; text-underlin
 .vdate { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .vtext { line-height: 1.8; overflow-wrap: anywhere; }
 .vtext b { font-size: 16px; }
-.vtext p { margin: 4px 0 0; white-space: pre-line; color: var(--muted); }
 .vrow.is-current { background: var(--fg); color: var(--bg); }
 .vrow.is-current .vn { font-style: italic; }
-.vrow.is-current .vtext p { color: inherit; opacity: 0.75; }
 
 /* ---------- FX ---------- */
 /* 画面を塞がない子ウィンドウ。右下に出て、タイトルバーで動かせる */

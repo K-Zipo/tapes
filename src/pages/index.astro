@@ -234,10 +234,7 @@ const X = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><p
           <li class={`vrow${i === 0 ? ' is-current' : ''}`}>
             {r.url ? <a class="vn" href={r.url} rel="noopener">{r.tag}</a> : <span class="vn">{r.tag}</span>}
             <time class="vdate" datetime={r.date.replaceAll('.', '-')}>{r.date}</time>
-            <div class="vtext jp">
-              <b>{r.title}</b>
-              {r.body && <p>{r.body}</p>}
-            </div>
+            <div class="vtext jp"><b>{r.title}</b></div>
           </li>
         ))}
         {ver.releases.length === 0 && <li class="vrow"><span class="vn">v0</span><span class="vdate"></span><div class="vtext jp">まだ最初のバージョンを出していません</div></li>}
