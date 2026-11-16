@@ -131,6 +131,7 @@ function paint(cw: HTMLElement, frac: number) {
 function setPlaying(cw: HTMLElement, on: boolean) {
   cw.classList.toggle('is-playing', on);
   $('.pbtn', cw).setAttribute('aria-label', `${on ? 'Pause' : 'Play'}: ${cw.dataset.title}`);
+  fxEcho();
 }
 function showNow() {
   if (current && !audio.paused) {
@@ -244,6 +245,7 @@ function fxStart() {
 function fxApply(instant = false) {
   try { localStorage.setItem('fx', JSON.stringify(fx)); } catch {}
   fxShow();
+  fxEcho();
   if (!ctx || !nodes) return;
   const t = ctx.currentTime;
   const set = (p: AudioParam, v: number, tc = 0.03) => (instant ? p.setValueAtTime(v, t) : p.setTargetAtTime(v, t, tc));
@@ -286,17 +288,123 @@ function fxShow() {
     if (dry) i.className = 'dry';
     bars.push(i);
   };
-  const m = fx.mix / 100;
-  add(0, fx.on ? Math.cos((m * Math.PI) / 2) : 1, true);
-  if (fx.on) {
-    let h = Math.sin((m * Math.PI) / 2);
-    for (let x = fx.time; x < TAP_SPAN && h > 0.03; x += fx.time) {
-      add(x, h);
-      h *= (fx.fb / 100) * 0.92;
-    }
-  }
+  add(0, fx.on ? Math.cos((fx.mix / 100 * Math.PI) / 2) : 1, true);
+  fxTaps().forEach((h, i) => add(fx.time * (i + 1), h));
   taps.replaceChildren(...bars);
 }
+
+// 繰り返しの大きさ（原音の後ろに並ぶぶん）。OFF なら空
+function fxTaps() {
+  const out: number[] = [];
+  if (!fx.on) return out;
+  let h = Math.sin((fx.mix / 100 * Math.PI) / 2);
+  for (let x = fx.time; x < TAP_SPAN && h > 0.03; x += fx.time) {
+    out.push(h);
+    h *= (fx.fb / 100) * 0.92;
+  }
+  return out;
+}
+
+/* 画面のディレイ: FX が ON で鳴っているあいだ、その記事のウィンドウに繰り返しを出す。
+ * - 影: 後ろのコピーほど薄く・ぼけて・少しずれる（ずれは記事ごとに決まった値で、動かない）
+ * - 文字: 本文のいくつかの文字が、右へ繰り返しの数だけどもる（下の stutter） */
+let echoWin: HTMLElement | null = null;
+const small = matchMedia('(max-width: 640px)');
+const col = (pct: number) => `color-mix(in srgb, var(--fg) ${Math.round(pct)}%, var(--bg))`;
+function fxEcho() {
+  const taps = fxTaps().slice(0, 6);
+  const win = taps.length && current && !audio.paused ? current.closest<HTMLElement>('.win') : null;
+  if (echoWin && echoWin !== win) echoWin.classList.remove('is-echo');
+  if (echoWin !== win) stutterStop();
+  echoWin = win;
+  if (!win) return;
+
+  const base = small.matches ? 4 : 6; // いつもの影（--shadow）
+  const step = (small.matches ? 0.7 : 1) * (4 + ((fx.time - 40) / 1160) * 10); // TIME → 1 回あたり 4〜14px
+  let seed = [...win.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32) * 2 - 1; // -1〜1
+  const box = taps.map((h, i) => {
+    const k = i + 1;
+    const d = base + step * k;
+    return `${(d + rnd() * 0.5 * k).toFixed(1)}px ${(d + rnd() * 0.5 * k).toFixed(1)}px ${(1.5 * k).toFixed(1)}px ${col(h * 100)}`;
+  });
+  win.style.setProperty('--echo', box.join(', '));
+  win.classList.add('is-echo');
+  stutterStart(win);
+}
+
+/* 文字のどもり。本文からランダムに何か所か選び、その塊のすぐ後ろに同じ塊を繰り返しの数だけ、後ろほど薄く差し込む。
+ * 例: 「点滅していた」→「点滅点滅点滅点滅していた」。差し込んだぶん、後ろの文字は押し出される。
+ * 動かさない。選び直すのは、FX のつまみを動かしたときと、再生を始めたときだけ。
+ * - 繰り返す塊の長さ: TIME で決める（長いディレイほど長い塊が戻ってくる）
+ * - 1文字あたりの繰り返しの数と薄さ: FEEDBACK と MIX（影と同じ fxTaps）
+ * 差し込む文字は CSS の ::after で出すので、コピーや読み上げには混ざらない。 */
+const STUTTER_SPOTS = 6; // どもる場所の数
+let stutterWin: HTMLElement | null = null;
+let stutterKey = '';
+function stutterStop() {
+  stutterKey = '';
+  if (!stutterWin) return;
+  const parents = new Set<Node>();
+  for (const el of $$('.stutter', stutterWin)) {
+    if (el.parentNode) parents.add(el.parentNode);
+    el.remove();
+  }
+  parents.forEach((p) => p.normalize()); // 分けたテキストをつなぎ直す
+  stutterWin = null;
+}
+function stutterStart(win: HTMLElement) {
+  const key = `${win.id}|${fx.time}|${fx.fb}|${fx.mix}`;
+  if (key === stutterKey) return;
+  stutterStop();
+  stutterKey = key;
+  stutterWin = win;
+
+  // TIME が長いほど、繰り返す塊が長くなる（40ms → 1 文字、1200ms → 8 文字）
+  const len = 1 + Math.round(((fx.time - 40) / 1160) * 7);
+  const spotsIn = (root: HTMLElement) => {
+    const out: [Text, number][] = [];
+    for (const n of textNodes(root)) {
+      const end = Math.max(1, n.length - len + 1); // 塊がテキストの終わりをはみ出さないように（短いテキストは丸ごと）
+      for (let i = 0; i < end; i++) if (/\S/.test(n.data[i])) out.push([n, i]);
+    }
+    return out;
+  };
+  const take = (from: [Text, number][]) => from.splice(Math.floor(Math.random() * from.length), 1)[0];
+  // 子ウィンドウ（音源・画像）は文字が少なくて当たりにくいので、それぞれ 1 か所は必ずどもらせる
+  const cws = $$('.cw', win);
+  const picks = cws.map((cw) => spotsIn(cw)).filter((s) => s.length).map(take);
+  const spots = spotsIn($('.wbody', win)).filter(([n, i]) => !picks.some(([pn, pi]) => pn === n && pi === i));
+  while (picks.length < STUTTER_SPOTS + cws.length && spots.length) picks.push(take(spots));
+  // 同じテキストの中では後ろから差し込む（前の位置がずれないように）
+  const byNode = new Map<Text, number[]>();
+  for (const [n, i] of picks) byNode.set(n, [...(byNode.get(n) ?? []), i]);
+  const taps = fxTaps().slice(0, 6);
+  for (const [node, at] of [...byNode].flatMap(([n, is]) => is.sort((x, y) => y - x).map((i) => [n, i] as const))) {
+    const ch = node.data.slice(at, at + len);
+    const rest = node.splitText(at + ch.length);
+    const wrap = document.createElement('span');
+    wrap.className = 'stutter';
+    wrap.setAttribute('aria-hidden', 'true');
+    for (const h of taps) {
+      const g = document.createElement('span');
+      g.dataset.c = ch;
+      g.style.color = col(h * 100);
+      wrap.append(g);
+    }
+    rest.before(wrap);
+  }
+}
+function textNodes(root: HTMLElement) {
+  const out: Text[] = [];
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) =>
+      n.parentElement?.closest('.cw-t, .pbtn, .lbtn, .win-share') || !/\S/.test(n.nodeValue || '') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  while (walk.nextNode()) out.push(walk.currentNode as Text);
+  return out;
+}
+small.addEventListener('change', fxEcho);
 
 for (const k of ['time', 'fb', 'mix'] as const) {
   sliders[k].addEventListener('input', () => {

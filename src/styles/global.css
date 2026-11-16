@@ -88,6 +88,10 @@ main { padding-top: 32px; padding-bottom: 64px; display: flex; flex-direction: c
 .allbtn .sym { font-size: 18px; line-height: 1; }
 
 .win { border: 3px solid var(--fg); box-shadow: var(--shadow) var(--shadow) 0 var(--fg); scroll-margin-top: 64px; }
+/* FX の画面のディレイ（app.ts の fxEcho）。なめらかに動かさず、切り替わるだけ */
+.win.is-echo { box-shadow: var(--shadow) var(--shadow) 0 var(--fg), var(--echo); }
+/* 文字のどもり（app.ts の stutter）。::after で出すので選択・コピーされない */
+.stutter > span::after { content: attr(data-c); }
 .win-bar {
   display: flex; align-items: center; gap: 12px; padding-left: 12px;
   background: var(--fg); color: var(--bg); font-size: 13px; font-weight: 700;
