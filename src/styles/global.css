@@ -169,6 +169,7 @@ a.kw { text-decoration: underline; text-decoration-thickness: 1px; text-underlin
 .cw--img > summary:hover { opacity: 0.65; }
 .cw-img { padding: 10px; }
 .cw-img img { display: block; max-width: 100%; height: auto; }
+.cw-video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; background: var(--fg); }
 .cw-missing { margin: 0; padding: 10px 14px; font-size: 13px; color: var(--muted); }
 
 .wfoot { border-top: 3px solid var(--fg); padding: 10px 22px 16px; display: flex; flex-direction: column; gap: 8px; }

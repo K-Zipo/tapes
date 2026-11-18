@@ -1,4 +1,4 @@
-// Obsidian の書き方（[[キーワード]] と ![[埋め込み]]）を扱う。
+// Obsidian の書き方（[[キーワード]] と ![[埋め込み]]、![](YouTube の URL)）を扱う。
 // remark プラグインと、ビルド時の集計（src/lib/site.ts）の両方から使う。
 import fs from 'node:fs';
 import path from 'node:path';
@@ -41,6 +41,31 @@ export function soundsOf(body) {
   return out;
 }
 
+/**
+ * YouTube の URL から動画の ID と開始位置を取り出す。YouTube でなければ null。
+ * youtu.be/ID, youtube.com/watch?v=ID, /shorts/ID, /live/ID, /embed/ID に対応。?si=… などは捨てる。
+ */
+export function youtubeOf(url) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^(www|m|music)\./, '');
+  let id = '';
+  if (host === 'youtu.be') id = u.pathname.slice(1);
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+    id = u.searchParams.get('v') || (u.pathname.match(/^\/(?:shorts|live|embed)\/([^/]+)/) || [])[1] || '';
+  }
+  if (!/^[\w-]{11}$/.test(id)) return null;
+  // t=90, t=1m30s, start=90
+  const t = u.searchParams.get('t') || u.searchParams.get('start') || '';
+  const m = t.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+  const start = m ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : 0;
+  return { id, start };
+}
+
 /** 本文をプレーンテキストにして先頭を切り出す（GRAPH のカード用） */
 export function excerptOf(body, max = 48) {
   const text = body
@@ -52,6 +77,7 @@ export function excerptOf(body, max = 48) {
       const { target, alias } = parseTarget(inner);
       return alias || target;
     })
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // ![](URL) の埋め込み
     .replace(/[#>*_`~]/g, '')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/\s+/g, ' ')
@@ -84,6 +110,8 @@ const ICON_SOUND =
   '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h3l4-3.5v11l-4-3.5h-3z" fill="currentColor"/></svg>';
 const ICON_IMAGE =
   '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="5.5" cy="6.5" r="1.4" fill="currentColor"/><path d="M2.5 12.5l4-4 3 3 2-2 3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const ICON_VIDEO =
+  '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="3" width="13" height="10" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 5.8v4.4L10.3 8z" fill="currentColor"/></svg>';
 const ICON_FILE =
   '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5h7l3 3v10H3z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 const SPEAKER_OFF =
@@ -142,6 +170,17 @@ function renderImage(name, rawAlias, base) {
   return `<details class="cw cw--img"${closed ? '' : ' open'}>${bar}<div class="cw-img"><img src="${esc(src)}" width="${w}" height="${h}" loading="lazy" decoding="async" alt="${esc(alias || name)}"></div>${cap(alias)}</details>`;
 }
 
+// ![説明|closed](YouTube の URL) … 画像と同じく開け閉めできる子ウィンドウに、16:9 で埋め込む。
+// Cookie を残さない youtube-nocookie.com から読み、スクロールで近づくまで読み込まない。
+export function renderVideo(yt, rawAlias) {
+  const { on: closed, caption: alias } = embedOpts(rawAlias, 'closed');
+  const name = `youtu.be/${yt.id}`;
+  const src = `https://www.youtube-nocookie.com/embed/${yt.id}${yt.start ? `?start=${yt.start}` : ''}`;
+  const bar = `<summary class="cw-bar"><span class="cw-name">${ICON_VIDEO}${esc(name)}</span><span>YouTube<span class="cw-tg" aria-hidden="true"></span></span></summary>`;
+  const frame = `<iframe src="${esc(src)}" title="${esc(alias || 'YouTube')}" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  return `<details class="cw cw--img cw--video"${closed ? '' : ' open'}>${bar}<div class="cw-img cw-video">${frame}</div>${cap(alias)}</details>`;
+}
+
 export function renderEmbed(inner, base = '/') {
   const { target, alias } = parseTarget(inner);
   if (SOUND_EXT.test(target)) return renderSound(target, alias, base);
@@ -170,7 +209,7 @@ function splitText(value) {
 }
 
 /**
- * 段落の中の ![[...]] を子ウィンドウにする。Obsidian と同じく、文の途中やリストの行の中に書いてもよい。
+ * 段落の中の ![[...]] と ![](YouTube の URL) を子ウィンドウにする。Obsidian と同じく、文の途中やリストの行の中に書いてもよい。
  * 段落を「埋め込みの前の文 → 子ウィンドウ → 後ろの文」に分けて返す。埋め込みがなければ null。
  */
 function splitEmbeds(paragraph, base) {
@@ -189,6 +228,13 @@ function splitEmbeds(paragraph, base) {
     buf = [];
   };
   for (const c of paragraph.children) {
+    const yt = c.type === 'image' ? youtubeOf(c.url) : null;
+    if (yt) {
+      found = true;
+      flush();
+      out.push({ type: 'html', value: renderVideo(yt, c.alt || '') });
+      continue;
+    }
     if (c.type !== 'text') { buf.push(c); continue; }
     let last = 0;
     for (const m of c.value.matchAll(WIKI)) {
