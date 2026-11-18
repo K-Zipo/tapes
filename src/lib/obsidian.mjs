@@ -183,6 +183,8 @@ export function renderVideo(yt, rawAlias) {
 
 export function renderEmbed(inner, base = '/') {
   const { target, alias } = parseTarget(inner);
+  const yt = youtubeOf(target); // ![[https://youtu.be/…]] と書いても動画にする
+  if (yt) return renderVideo(yt, alias);
   if (SOUND_EXT.test(target)) return renderSound(target, alias, base);
   if (IMAGE_EXT.test(target)) return renderImage(target, alias, base);
   return `<div class="cw" role="group" aria-label="${esc(target)}">${cwBar(ICON_FILE, target, '')}${cap(alias)}</div>`;
@@ -212,7 +214,30 @@ function splitText(value) {
  * 段落の中の ![[...]] と ![](YouTube の URL) を子ウィンドウにする。Obsidian と同じく、文の途中やリストの行の中に書いてもよい。
  * 段落を「埋め込みの前の文 → 子ウィンドウ → 後ろの文」に分けて返す。埋め込みがなければ null。
  */
+/**
+ * ![[https://…]] の中の URL は、Markdown の自動リンクで先にリンクにされてしまう。
+ * [[ の直後にあるリンクは文字に戻し、前後の文字とつなげて、![[…]] として読めるようにする。
+ */
+function unlinkWiki(children) {
+  const out = [];
+  for (const c of children) {
+    const prev = out[out.length - 1];
+    const auto = c.type === 'link' && c.children.length === 1 && c.children[0].type === 'text';
+    if (auto && prev?.type === 'text' && /\[\[$/.test(prev.value)) {
+      prev.value += c.children[0].value;
+      continue;
+    }
+    if (c.type === 'text' && prev?.type === 'text') {
+      prev.value += c.value;
+      continue;
+    }
+    out.push(c.type === 'text' ? { ...c } : c);
+  }
+  return out;
+}
+
 function splitEmbeds(paragraph, base) {
+  paragraph.children = unlinkWiki(paragraph.children);
   const out = [];
   let buf = [];
   let found = false;

@@ -107,7 +107,7 @@ draft: false   # true にするとサイトに出ない
 - `![[x.wav|説明|loop]]` … 最初からループ再生にしておく
 - `![[x.png|説明]]` … 画像の子ウィンドウ。縦横の大きさはビルドのときに読み取る。バーを押すと開閉できる
 - `![[x.png|説明|closed]]` … 最初は閉じた状態で出す。Obsidian の大きさ指定（`|300` など）はサイトでは無視する
-- `![説明](https://youtu.be/…)` … YouTube の子ウィンドウ（Obsidian の埋め込みと同じ書き方）。`youtube-nocookie.com` から読み込み、`?si=…` は外す。`?t=90` の開始位置は使う。`![説明|closed](…)` で最初は閉じる
+- `![説明](https://youtu.be/…)` … YouTube の子ウィンドウ（Obsidian の埋め込みと同じ書き方）。`youtube-nocookie.com` から読み込み、`?si=…` は外す。`?t=90` の開始位置は使う。`![説明|closed](…)` で最初は閉じる。`![[https://youtu.be/…|説明]]` と書いてもよい
 - 子ウィンドウにするには、`![[…]]` だけの段落にする
 
 `site/profile.md` の frontmatter には `based_in`・`makes`・`contact`・`links: [{label, url}]` を書きます。本文は PROFILE に出ます。
