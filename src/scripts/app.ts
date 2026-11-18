@@ -522,14 +522,120 @@ for (const w of G.words) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = `gnode ${w.count >= 3 ? 'c3' : w.count === 2 ? 'c2' : 'one'}`;
-  b.style.left = `${w.x}%`;
-  b.style.top = `${w.y}%`;
   b.setAttribute('aria-label', `${w.id} — ${w.count} pages`);
   b.innerHTML = '<span class="dot" aria-hidden="true"></span><span class="lbl"></span>';
   $('.lbl', b).textContent = w.id;
   b.addEventListener('click', () => pick(w.id));
+  b.addEventListener('pointerenter', () => hover(w.id));
+  b.addEventListener('pointerleave', () => hover(''));
+  b.addEventListener('focus', () => hover(w.id));
+  b.addEventListener('blur', () => hover(''));
   canvas.append(b);
   nodeEls.set(w.id, b);
+}
+
+/* Obsidian のグラフビューのように見せる。
+ * - ラベルは点の下。全体表示では、多くのページに出る語だけ名前を出し、拡大するほど小さい語の名前も出る
+ * - 点に乗せる（フォーカスする）と、その語とつながった語だけが浮き、ほかは薄くなる
+ * - ドラッグで動かし、ホイール・ピンチ・ボタンで拡大縮小する。拡大しても文字の大きさは変えず、間隔だけ広げる */
+const view = { k: 1, tx: 0, ty: 0, fit: 1, moved: false };
+let hoverId = '';
+function place() {
+  const { k, tx, ty } = view;
+  $('#g-edges').setAttribute('transform', `matrix(${k} 0 0 ${k} ${tx} ${ty})`);
+  for (const [id, b] of nodeEls) {
+    const w = byId.get(id)!;
+    b.style.transform = `translate(${tx + w.x * 10 * k}px, ${ty + w.y * 6 * k}px) translate(-50%, calc(var(--s) / -2))`;
+  }
+  const z = k / view.fit;
+  canvas.classList.toggle('z2', z >= 1.5);
+  canvas.classList.toggle('z3', z >= 2.4);
+}
+function fitView() {
+  // 開くアニメーションで拡大縮小している最中でも正しい大きさを取るため、clientWidth を使う
+  const r = { width: canvas.clientWidth, height: canvas.clientHeight };
+  if (!r.width) return;
+  const k = Math.min(r.width / 1000, r.height / 600);
+  Object.assign(view, { k, fit: k, tx: (r.width - 1000 * k) / 2, ty: (r.height - 600 * k) / 2, moved: false });
+  place();
+}
+function zoomAt(f: number, cx: number, cy: number) {
+  const k = Math.min(view.fit * 8, Math.max(view.fit * 0.5, view.k * f));
+  const s = k / view.k;
+  view.tx = cx - (cx - view.tx) * s;
+  view.ty = cy - (cy - view.ty) * s;
+  view.k = k;
+  view.moved = true;
+  place();
+}
+new ResizeObserver(() => (view.moved ? place() : fitView())).observe(canvas);
+const zoomMid = (f: number) => zoomAt(f, canvas.clientWidth / 2, canvas.clientHeight / 2);
+$('#g-zin').addEventListener('click', () => zoomMid(1.5));
+$('#g-zout').addEventListener('click', () => zoomMid(1 / 1.5));
+$('#g-zfit').addEventListener('click', fitView);
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.002)), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+// 1本指（マウス）で動かす、2本指で拡大縮小。少しでも動かしたら、点のクリックとして扱わない
+const pts = new Map<number, { x: number; y: number }>();
+let dragged = 0;
+canvas.addEventListener('pointerdown', (e) => {
+  if ((e.target as Element).closest('.g-zoom')) return;
+  pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pts.size === 1) dragged = 0;
+});
+canvas.addEventListener('pointermove', (e) => {
+  const p = pts.get(e.pointerId);
+  if (!p) return;
+  const now = { x: e.clientX, y: e.clientY };
+  if (pts.size === 1) {
+    view.tx += now.x - p.x;
+    view.ty += now.y - p.y;
+    view.moved = true;
+    place();
+  } else if (pts.size === 2) {
+    const [a, b] = [...pts.entries()].map(([id, q]) => (id === e.pointerId ? now : q));
+    const [a0, b0] = [...pts.values()];
+    const r = canvas.getBoundingClientRect();
+    const d0 = Math.hypot(a0.x - b0.x, a0.y - b0.y), d1 = Math.hypot(a.x - b.x, a.y - b.y);
+    if (d0 > 0) zoomAt(d1 / d0, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+  }
+  dragged += Math.abs(now.x - p.x) + Math.abs(now.y - p.y);
+  if (dragged > 4 && !canvas.hasPointerCapture(e.pointerId)) {
+    canvas.setPointerCapture(e.pointerId);
+    canvas.classList.add('panning');
+  }
+  pts.set(e.pointerId, now);
+});
+const lift = (e: PointerEvent) => {
+  pts.delete(e.pointerId);
+  if (!pts.size) canvas.classList.remove('panning');
+};
+canvas.addEventListener('pointerup', lift);
+canvas.addEventListener('pointercancel', lift);
+canvas.addEventListener('click', (e) => {
+  if (dragged > 4) { e.stopPropagation(); e.preventDefault(); dragged = 0; }
+}, true);
+function hover(id: string) {
+  if (canvas.classList.contains('panning')) return;
+  hoverId = id;
+  const near = neighbors.get(id) ?? new Set();
+  canvas.classList.toggle('hovering', !!id);
+  for (const [n, b] of nodeEls) b.classList.toggle('hl', n === id || near.has(n));
+  drawEdges();
+}
+function drawEdges() {
+  let on = '', faint = '';
+  for (const [a, b] of G.edges) {
+    const p = byId.get(a)!, q = byId.get(b)!;
+    const seg = `M${p.x * 10} ${p.y * 6}L${q.x * 10} ${q.y * 6}`;
+    const focus = hoverId || sel;
+    if (a === focus || b === focus) on += seg; else faint += seg;
+  }
+  $('#g-on').setAttribute('d', on || 'M0 0');
+  $('#g-faint').setAttribute('d', faint || 'M0 0');
 }
 $<HTMLInputElement>('#kw-filter').addEventListener('input', (e) => {
   filter = (e.target as HTMLInputElement).value.trim().toLowerCase();
@@ -557,14 +663,8 @@ function pick(id: string) {
 function renderGraph() {
   const match = (id: string) => !filter || id.toLowerCase().includes(filter);
   const near = neighbors.get(sel) ?? new Set();
-  let on = '', faint = '';
-  for (const [a, b] of G.edges) {
-    const p = byId.get(a)!, q = byId.get(b)!;
-    const seg = `M${p.x * 10} ${p.y * 6}L${q.x * 10} ${q.y * 6}`;
-    if (a === sel || b === sel) on += seg; else faint += seg;
-  }
-  $('#g-on').setAttribute('d', on || 'M0 0');
-  $('#g-faint').setAttribute('d', faint || 'M0 0');
+  drawEdges();
+  canvas.classList.toggle('filtering', !!filter);
   for (const [id, b] of nodeEls) {
     b.setAttribute('aria-pressed', String(id === sel));
     b.classList.toggle('near', near.has(id));

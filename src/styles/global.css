@@ -218,28 +218,48 @@ a.kw { text-decoration: underline; text-decoration-thickness: 1px; text-underlin
 #graph .modal { max-width: 1140px; }
 .g-cols { display: flex; flex-wrap: wrap; }
 .g-left { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; }
-.g-scroll { overflow-x: auto; }
-.g-canvas { position: relative; min-width: 620px; aspect-ratio: 1000 / 600; }
+/* Obsidian のグラフビューのように、ラベルは点の下。拡大（.z2 / .z3）するほど小さい語の名前も出る */
+.g-canvas { position: relative; aspect-ratio: 1000 / 600; min-height: 340px; overflow: hidden; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.g-canvas.panning { cursor: grabbing; }
 .g-canvas svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.g-canvas path { fill: none; stroke-linecap: round; }
-.g-faint { stroke: var(--faint); stroke-width: 1.5; }
-.g-on { stroke: var(--fg); stroke-width: 3; }
+.g-canvas path { fill: none; stroke-linecap: round; transition: opacity 0.15s; }
+.g-faint { stroke: var(--faint); stroke-width: 1.2; }
+.g-on { stroke: var(--fg); stroke-width: 2.5; }
 .gnode {
-  --s: 14px;
-  position: absolute; transform: translate(calc(var(--s) / -2 - 4px), -50%);
-  display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px;
+  --s: 10px;
+  position: absolute; left: 0; top: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0;
   border: none; background: transparent; color: var(--fg); cursor: pointer;
-  font-family: 'Zen Kaku Gothic New', 'Archivo', sans-serif; font-size: 13px; line-height: 1.3; white-space: nowrap;
+  font-family: 'Zen Kaku Gothic New', 'Archivo', sans-serif; font-size: 12px; line-height: 1.2; white-space: nowrap;
+  transition: opacity 0.15s;
 }
-.gnode.c2 { --s: 20px; font-size: 15px; }
-.gnode.c3 { --s: 26px; font-size: 17px; }
-.gnode .dot { flex: 0 0 var(--s); width: var(--s); height: var(--s); box-sizing: border-box; border: 3px solid currentColor; border-radius: 50%; background: var(--bg); }
+.gnode::before { content: ''; position: absolute; left: 50%; top: calc(var(--s) / 2); width: 32px; height: 32px; transform: translate(-50%, -50%); } /* 押せる範囲を広げる */
+.gnode.c2 { --s: 14px; font-size: 13px; }
+.gnode.c3 { --s: 20px; font-size: 15px; font-weight: 700; }
+.gnode .dot { flex: 0 0 var(--s); width: var(--s); height: var(--s); box-sizing: border-box; border: 2px solid currentColor; border-radius: 50%; background: var(--bg); }
+.gnode.c3 .dot { border-width: 3px; }
 .gnode.one .dot { border-style: dashed; }
-.gnode .lbl { background: var(--bg); padding: 0 3px; }
-.gnode.near .lbl, .gnode[aria-pressed='true'] .lbl { font-weight: 700; }
+.gnode .lbl { padding: 0 2px; opacity: 0; transition: opacity 0.15s; text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg), 0 0 6px var(--bg); }
+.gnode.c3 .lbl,
+.g-canvas.z2 .gnode.c2 .lbl,
+.g-canvas.z3 .gnode .lbl,
+.g-canvas.filtering .gnode:not(.miss) .lbl,
+.gnode[aria-pressed='true'] .lbl,
+.gnode:focus-visible .lbl,
+.g-canvas.hovering .gnode.hl .lbl { opacity: 1; }
+.gnode.near .dot { border-width: 3px; }
 .gnode[aria-pressed='true'] .dot { background: var(--fg); }
-.gnode[aria-pressed='true'] .lbl { text-decoration: underline 2px; text-underline-offset: 4px; }
+.gnode[aria-pressed='true'] .lbl { font-weight: 700; text-decoration: underline 2px; text-underline-offset: 3px; }
 .gnode.miss { color: var(--faint); }
+.g-canvas.hovering .gnode:not(.hl) { opacity: 0.2; }
+.g-canvas.hovering .gnode.hl { z-index: 1; }
+.g-canvas.hovering .g-faint { opacity: 0.3; }
+.g-zoom { position: absolute; left: 10px; top: 10px; z-index: 2; display: flex; }
+.g-zoom button {
+  min-width: 34px; height: 34px; padding: 0 8px; margin-right: -2px; border: 2px solid var(--fg); background: var(--bg); color: var(--fg);
+  font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 800; text-transform: uppercase; cursor: pointer;
+}
+.g-zoom button:hover { background: var(--fg); color: var(--bg); }
 .g-tools { border-top: 3px solid var(--fg); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
 .g-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .g-search input {

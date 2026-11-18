@@ -99,6 +99,8 @@ function layout(ids: string[], edges: [string, string][], count: Map<string, num
     return [id, { x: 0.5 + r * Math.cos(t) + (rnd() - 0.5) * 0.02, y: 0.5 + r * Math.sin(t) + (rnd() - 0.5) * 0.02 }];
   }));
   const n = Math.max(1, ids.length);
+  const deg = new Map(ids.map((id) => [id, 0]));
+  for (const [p, q] of edges) { deg.set(p, deg.get(p)! + 1); deg.set(q, deg.get(q)! + 1); }
   const k = 0.9 / Math.sqrt(n);
   for (let it = 0; it < 400; it++) {
     const temp = 0.05 * (1 - it / 400) + 0.002;
@@ -106,8 +108,7 @@ function layout(ids: string[], edges: [string, string][], count: Map<string, num
     for (let i = 0; i < sorted.length; i++)
       for (let j = i + 1; j < sorted.length; j++) {
         const a = P.get(sorted[i])!, b = P.get(sorted[j])!;
-        // ラベルが横に長いので、横方向の距離を詰めて見積もる
-        const dx = (a.x - b.x) * 0.6, dy = a.y - b.y;
+        const dx = a.x - b.x, dy = a.y - b.y;
         const d = Math.max(0.01, Math.hypot(dx, dy));
         const f = (k * k) / d;
         D.get(sorted[i])!.x += (dx / d) * f; D.get(sorted[i])!.y += (dy / d) * f;
@@ -117,28 +118,29 @@ function layout(ids: string[], edges: [string, string][], count: Map<string, num
       const a = P.get(p)!, b = P.get(q)!;
       const dx = a.x - b.x, dy = a.y - b.y;
       const d = Math.max(0.01, Math.hypot(dx, dy));
-      const f = (d * d) / k;
+      // 1つの記事の語はみんなつながるので、つながりの多い語ほど引く力を弱める（固まりすぎないように）
+      const f = (d * d) / k / Math.sqrt(deg.get(p)! * deg.get(q)!);
       D.get(p)!.x -= (dx / d) * f; D.get(p)!.y -= (dy / d) * f;
       D.get(q)!.x += (dx / d) * f; D.get(q)!.y += (dy / d) * f;
     }
     for (const id of ids) {
       const a = P.get(id)!, v = D.get(id)!;
       // 中心へ引く（つながっていない塊どうしが四隅に離れすぎないように）
-      v.x += (0.5 - a.x) * 1.2; v.y += (0.5 - a.y) * 1.2;
+      v.x += (0.5 - a.x) * 0.6; v.y += (0.5 - a.y) * 0.6;
       const l = Math.max(1e-9, Math.hypot(v.x, v.y));
       a.x += (v.x / l) * Math.min(l, temp);
       a.y += (v.y / l) * Math.min(l, temp);
     }
   }
-  // 枠に収める（右側はラベルの分を空ける）
+  // 枠に収める（ラベルは点の下に出るので、下を少し空ける）
   const xs = ids.map((id) => P.get(id)!.x), ys = ids.map((id) => P.get(id)!.y);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   const out = new Map<string, { x: number; y: number }>();
   for (const id of ids) {
     const a = P.get(id)!;
     out.set(id, {
-      x: Math.round((6 + ((a.x - x0) / Math.max(1e-6, x1 - x0)) * 70) * 10) / 10,
-      y: Math.round((10 + ((a.y - y0) / Math.max(1e-6, y1 - y0)) * 80) * 10) / 10,
+      x: Math.round((6 + ((a.x - x0) / Math.max(1e-6, x1 - x0)) * 88) * 10) / 10,
+      y: Math.round((7 + ((a.y - y0) / Math.max(1e-6, y1 - y0)) * 84) * 10) / 10,
     });
   }
   return out;

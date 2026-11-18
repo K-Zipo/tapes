@@ -159,12 +159,17 @@ const X = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><p
       </div>
       <div class="g-cols">
         <div class="g-left">
-          <div class="g-scroll">
-            <div class="g-canvas" id="g-canvas">
-              <svg viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+          <div class="g-canvas" id="g-canvas">
+            <svg aria-hidden="true">
+              <g id="g-edges">
                 <path class="g-faint" id="g-faint" vector-effect="non-scaling-stroke" />
                 <path class="g-on" id="g-on" vector-effect="non-scaling-stroke" />
-              </svg>
+              </g>
+            </svg>
+            <div class="g-zoom">
+              <button type="button" id="g-zin" aria-label="Zoom in">+</button>
+              <button type="button" id="g-zout" aria-label="Zoom out">−</button>
+              <button type="button" id="g-zfit" aria-label="Fit graph">Fit</button>
             </div>
           </div>
           <div class="g-tools">
